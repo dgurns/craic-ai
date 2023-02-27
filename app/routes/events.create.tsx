@@ -4,10 +4,16 @@ export default function EventsCreate() {
 	return (
 		<div>
 			<h1>Craic AI</h1>
-			<p>
-				Planning something with friends? Let AI handle the coordination. Sit
-				back and get a confirmed date/time with calendar invites.
-			</p>
+			<p>Planning something with friends? Let AI handle the coordination.</p>
+			<h2>How does it work?</h2>
+			<ul>
+				<li>
+					We'll email the invitees and find a date that most people can do
+				</li>
+				<li>
+					Then we'll finalize the details and send everyone calendar invites
+				</li>
+			</ul>
 
 			<Form className="flex flex-col space-y-6 items-start">
 				<div className="flex flex-col space-y-2 w-full max-w-lg">
@@ -42,16 +48,6 @@ export default function EventsCreate() {
 				</div>
 
 				<button type="submit">Plan it!</button>
-
-				<h2>How does it work?</h2>
-				<ul>
-					<li>
-						We'll email the invitees to find a date that most people can do
-					</li>
-					<li>
-						Then we'll finalize the details and send everyone calendar invites
-					</li>
-				</ul>
 			</Form>
 		</div>
 	);
