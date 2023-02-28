@@ -1,0 +1,8 @@
+compatibility_flags = ["streams_enable_constructors"]
+compatibility_date = "2023-02-28"
+
+[[ d1_databases ]]
+binding = "DB"
+database_name = "craic-ai"
+database_id = "a751f1eb-9f88-46cb-81cd-3d3a09788a59"
+preview_database_id = "9fc6ac03-6c63-48ce-8502-2cee38cb649e"

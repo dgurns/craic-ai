@@ -2,6 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
+    "gen-db-types": "npx kysely-codegen --dialect=sqlite --url=./.wrangler/state/d1/DB.sqlite3 --out-file=./app/db.d.ts",
     "build": "remix build",
     "dev:remix": "remix watch",
     "dev:wrangler": "cross-env NODE_ENV=development npm run wrangler",
@@ -16,6 +17,8 @@
     "@remix-run/react": "^1.13.0",
     "cross-env": "^7.0.3",
     "isbot": "^3.6.6",
+    "kysely": "^0.23.4",
+    "kysely-d1": "^0.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "xstate": "^4.37.0"
@@ -27,7 +30,9 @@
     "@tailwindcss/forms": "^0.5.3",
     "@types/react": "^18.0.25",
     "@types/react-dom": "^18.0.8",
+    "better-sqlite3": "^8.1.0",
     "eslint": "^8.27.0",
+    "kysely-codegen": "^0.9.0",
     "npm-run-all": "^4.1.5",
     "tailwindcss": "^3.2.7",
     "typescript": "^4.8.4",
