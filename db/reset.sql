@@ -1,0 +1,2 @@
+DROP DATABASE IF EXISTS craic_ai;
+CREATE DATABASE craic_ai;
