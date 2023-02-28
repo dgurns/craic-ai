@@ -5,3 +5,5 @@ truncate -s 0 .wrangler/state/d1/DB.sqlite3
 # init schema
 export NO_D1_WARNING=true
 wrangler d1 execute craic-ai --local --file ./db/schema.sql
+# generate TypeScript types based on the schema
+yarn gen-db-types
