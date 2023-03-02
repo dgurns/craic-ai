@@ -5,7 +5,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { type ActionArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
-import { isValidEmail } from '~/utils';
+import { isValidEmail } from '~/utils/email';
 
 type ActionData = {
 	error?: string;
