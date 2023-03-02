@@ -32,77 +32,77 @@ export async function action({ context, request }: ActionArgs) {
 			{ status: 400 }
 		);
 	}
-	const db = createDBClient(context.DB);
-	// create user for organizer
-	let organizerId: number | undefined;
+	let eventID: number | undefined;
 	try {
+		const db = createDBClient(context.DB);
+		// create user for organizer
 		const organizer = await db
 			.insertInto('users')
 			.values({
 				email: parsed.data.email,
 				hashed_password: bcrypt.hashSync(parsed.data.password),
 			})
+			.returning('id')
 			.executeTakeFirstOrThrow();
-		if (organizer) {
-			organizerId = Number(organizer.insertId);
+		if (!organizer.id) {
+			return json<ActionData>(
+				{
+					error:
+						'Unable to create user; do you already have an account for this email? If so, please login.',
+				},
+				{ status: 500 }
+			);
 		}
-	} catch {
-		//
-	}
-	if (!organizerId) {
-		return json<ActionData>(
-			{
-				error:
-					'Unable to create user; do you already have an account for this email? If so, please login.',
-			},
-			{ status: 500 }
-		);
-	}
-	// create event
-	const event = await db
-		.insertInto('events')
-		.values({
-			organizer_id: organizerId,
-			name: parsed.data.eventName,
-			proposed_date: parsed.data.roughDate,
-		})
-		.returning('id')
-		.executeTakeFirst();
-	if (!event?.id) {
-		return json<ActionData>(
-			{ error: 'Unable to create event' },
-			{ status: 500 }
-		);
-	}
-	// add the invitees. If any fail, continue to the next one.
-	for (const email of invitees) {
-		// create user and invitee record
-		try {
-			if (!isValidEmail(email)) {
-				throw new Error('Invalid email; skipping');
-			}
-			const inviteeUser = await db
-				.insertInto('users')
-				.values({
-					email,
-				})
-				.returning('id')
-				.executeTakeFirst();
-			if (!inviteeUser?.id) {
-				throw new Error('Unable to create user for invitee');
-			}
-			await db
-				.insertInto('invitees')
-				.values({
-					event_id: event.id,
-					user_id: inviteeUser.id,
-				})
-				.execute();
-		} catch {
-			//
+		// create event
+		const event = await db
+			.insertInto('events')
+			.values({
+				organizer_id: organizer.id,
+				name: parsed.data.eventName,
+				proposed_date: parsed.data.roughDate,
+			})
+			.returning('id')
+			.executeTakeFirst();
+		if (!event?.id) {
+			return json<ActionData>(
+				{ error: 'Unable to create event' },
+				{ status: 500 }
+			);
 		}
+		eventID = event.id;
+		// add the invitees. If any fail, continue to the next one.
+		for (const email of invitees) {
+			// create user and invitee record
+			try {
+				if (!isValidEmail(email)) {
+					throw new Error('Invalid email; skipping');
+				}
+				const inviteeUser = await db
+					.insertInto('users')
+					.values({
+						email,
+					})
+					.returning('id')
+					.executeTakeFirst();
+				if (!inviteeUser?.id) {
+					throw new Error('Unable to create user for invitee');
+				}
+				await db
+					.insertInto('invitees')
+					.values({
+						event_id: event.id,
+						user_id: inviteeUser.id,
+					})
+					.execute();
+			} catch {
+				//
+			}
+		}
+	} catch (e) {
+		console.log(e);
+		return json<ActionData>({ error: 'Error creating event' }, { status: 500 });
 	}
-	return redirect(`/events/${event.id}`);
+	return redirect(`/events/${eventID}`);
 }
 
 export default function EventsCreate() {
