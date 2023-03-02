@@ -147,7 +147,7 @@ export default function Home() {
 			<p>Planning something with friends? Let AI handle the coordination.</p>
 			<h2>How does it work?</h2>
 			<ul>
-				<li>We'll email each person and find a date that most people can do</li>
+				<li>We'll email attendees and find a date that most people can do</li>
 				<li>
 					Then we'll finalize the details and send everyone calendar invites
 				</li>
