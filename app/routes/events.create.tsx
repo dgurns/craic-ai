@@ -2,7 +2,7 @@ import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/cloudflare';
 import { type ActionArgs, type LoaderArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
-import { isValidEmail, isValidPassword } from '~/utils/forms';
+import { isValidEmail } from '~/utils/forms';
 import { getSession } from '~/sessions';
 
 export async function loader({ request }: LoaderArgs) {
@@ -10,6 +10,7 @@ export async function loader({ request }: LoaderArgs) {
 	if (!session.get('userID')) {
 		return redirect('/login');
 	}
+	return json({});
 }
 
 type ActionData = {
@@ -45,17 +46,10 @@ export async function action({ context, request }: ActionArgs) {
 			{ status: 400 }
 		);
 	}
-	const email = String(formData.get('email') ?? '');
-	if (!isValidEmail(email)) {
+	const hasInvalidEmails = inviteeEmails.some((email) => !isValidEmail(email));
+	if (hasInvalidEmails) {
 		return json<ActionData>(
-			{ error: 'Your email address is invalid' },
-			{ status: 400 }
-		);
-	}
-	const password = String(formData.get('password') ?? '');
-	if (!isValidPassword(password)) {
-		return json<ActionData>(
-			{ error: 'Password must be at least 8 characters' },
+			{ error: 'One or more email addresses are invalid' },
 			{ status: 400 }
 		);
 	}
@@ -84,22 +78,33 @@ export async function action({ context, request }: ActionArgs) {
 				if (!isValidEmail(email)) {
 					throw new Error('Invalid email; skipping');
 				}
-				const inviteeUser = await db
-					.insertInto('users')
-					.values({
-						email,
-					})
-					.returning('id')
-					.executeTakeFirstOrThrow();
+				let inviteeUserID: number | undefined;
+				const existingInviteeUser = await db
+					.selectFrom('users')
+					.selectAll()
+					.where('email', '=', email)
+					.executeTakeFirst();
+				if (existingInviteeUser) {
+					inviteeUserID = existingInviteeUser.id;
+				} else {
+					const inviteeUser = await db
+						.insertInto('users')
+						.values({
+							email,
+						})
+						.returning('id')
+						.executeTakeFirstOrThrow();
+					inviteeUserID = inviteeUser.id;
+				}
 				await db
 					.insertInto('invitees')
 					.values({
 						event_id: event.id,
-						user_id: inviteeUser.id,
+						user_id: inviteeUserID,
 					})
 					.executeTakeFirstOrThrow();
-			} catch {
-				//
+			} catch (e) {
+				console.log(e);
 			}
 		}
 		return redirect(`/events/${event.id}`);
@@ -115,24 +120,12 @@ export default function EventsCreate() {
 
 	return (
 		<div>
-			<h1>Craic AI</h1>
-			<p>Planning something with friends? Let AI handle the coordination.</p>
-			<h2>How does it work?</h2>
-			<ul>
-				<li>
-					We'll email the invitees and find a date that most people can do
-				</li>
-				<li>
-					Then we'll finalize the details and send everyone calendar invites
-				</li>
-			</ul>
-
 			<Form
 				method="post"
-				action="/"
-				className="flex flex-col space-y-6 items-start"
+				action="/events/create"
+				className="flex flex-col items-start space-y-6"
 			>
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="eventName">What are you planning?</label>
 					<input
 						type="text"
@@ -143,7 +136,7 @@ export default function EventsCreate() {
 					/>
 				</div>
 
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="roughDate">Roughly when?</label>
 					<input
 						type="text"
@@ -154,7 +147,7 @@ export default function EventsCreate() {
 					/>
 				</div>
 
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="invitees">Who do you want to invite?</label>
 					<textarea
 						id="invitees"

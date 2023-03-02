@@ -12,6 +12,7 @@ export async function loader({ request }: LoaderArgs) {
 	if (session.get('userID')) {
 		return redirect('/events');
 	}
+	return json({});
 }
 
 type ActionData = {
@@ -39,6 +40,13 @@ export async function action({ context, request }: ActionArgs) {
 	if (!invitees || inviteeEmails.length === 0) {
 		return json<ActionData>(
 			{ error: 'You must invite at least one email address' },
+			{ status: 400 }
+		);
+	}
+	const hasInvalidEmails = inviteeEmails.some((email) => !isValidEmail(email));
+	if (hasInvalidEmails) {
+		return json<ActionData>(
+			{ error: 'One or more email addresses are invalid' },
 			{ status: 400 }
 		);
 	}
@@ -84,22 +92,33 @@ export async function action({ context, request }: ActionArgs) {
 				if (!isValidEmail(email)) {
 					throw new Error('Invalid email; skipping');
 				}
-				const inviteeUser = await db
-					.insertInto('users')
-					.values({
-						email,
-					})
-					.returning('id')
-					.executeTakeFirstOrThrow();
+				let inviteeUserID: number | undefined;
+				const existingInviteeUser = await db
+					.selectFrom('users')
+					.selectAll()
+					.where('email', '=', email)
+					.executeTakeFirst();
+				if (existingInviteeUser) {
+					inviteeUserID = existingInviteeUser.id;
+				} else {
+					const inviteeUser = await db
+						.insertInto('users')
+						.values({
+							email,
+						})
+						.returning('id')
+						.executeTakeFirstOrThrow();
+					inviteeUserID = inviteeUser.id;
+				}
 				await db
 					.insertInto('invitees')
 					.values({
 						event_id: event.id,
-						user_id: inviteeUser.id,
+						user_id: inviteeUserID,
 					})
 					.executeTakeFirstOrThrow();
-			} catch {
-				//
+			} catch (e) {
+				console.log(e);
 			}
 		}
 		return redirect(`/events/${event.id}`);
@@ -132,9 +151,9 @@ export default function Home() {
 			<Form
 				method="post"
 				action="/"
-				className="flex flex-col space-y-6 items-start"
+				className="flex flex-col items-start space-y-6"
 			>
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="eventName">What are you planning?</label>
 					<input
 						type="text"
@@ -145,7 +164,7 @@ export default function Home() {
 					/>
 				</div>
 
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="roughDate">Roughly when?</label>
 					<input
 						type="text"
@@ -156,7 +175,7 @@ export default function Home() {
 					/>
 				</div>
 
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="invitees">Who do you want to invite?</label>
 					<textarea
 						id="invitees"
@@ -166,7 +185,7 @@ export default function Home() {
 					/>
 				</div>
 
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
+				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="email">Your email</label>
 					<input
 						type="text"
@@ -179,7 +198,7 @@ export default function Home() {
 				</div>
 
 				{showPasswordField && (
-					<div className="flex flex-col space-y-2 w-full max-w-lg">
+					<div className="flex w-full max-w-lg flex-col space-y-2">
 						<label htmlFor="password">
 							Choose a password (at least 8 characters)
 						</label>

@@ -30,10 +30,11 @@ export default function EventsByID() {
 	if (!event || !invitees)
 		return <div className="text-red-500">Event not found</div>;
 
-	const allInviteesResponded = invitees.every((invitee) => invitee.response);
-	const allInviteesSentConfirmation = invitees.every(
-		(invitee) => invitee.finalized_date_sent
-	);
+	const allInviteesResponded =
+		invitees.length > 0 && invitees.every((invitee) => invitee.response);
+	const allInviteesSentConfirmation =
+		invitees.length > 0 &&
+		invitees.every((invitee) => invitee.finalized_date_sent);
 
 	return (
 		<div className="flex flex-col">

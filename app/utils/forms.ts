@@ -1,9 +1,8 @@
 export function isValidEmail(email?: string): boolean {
-	if (!email) {
+	if (!email || !email.includes('@') || !email.includes('.')) {
 		return false;
 	}
-	const re = /\S+@\S+\.\S+/;
-	return re.test(email);
+	return true;
 }
 
 export function isValidPassword(password?: string): boolean {
