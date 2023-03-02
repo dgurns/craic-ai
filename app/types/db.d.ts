@@ -5,7 +5,7 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   : ColumnType<T, T | undefined, T>;
 
 export interface Events {
-  id: number;
+  id: Generated<number | null>;
   organizer_id: number;
   name: string;
   proposed_date: string;
@@ -15,7 +15,7 @@ export interface Events {
 }
 
 export interface Invitees {
-  id: number;
+  id: Generated<number | null>;
   event_id: number;
   user_id: number;
   invite_sent: Generated<number>;
@@ -26,7 +26,7 @@ export interface Invitees {
 }
 
 export interface Users {
-  id: number;
+  id: Generated<number | null>;
   email: string;
   hashed_password: string | null;
   created_at: Generated<string>;
