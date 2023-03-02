@@ -68,11 +68,7 @@ export default function Login() {
 		<div className="flex flex-col space-y-4">
 			<h1>Log in</h1>
 			{/* add a form with email and password fields and a submit button */}
-			<Form
-				method="post"
-				action="/login"
-				className="flex flex-col space-y-2 items-start"
-			>
+			<Form method="post" className="flex flex-col items-start space-y-2">
 				<div className="flex flex-col space-y-1">
 					<label htmlFor="email">Email</label>
 					<input type="text" id="email" name="email" required />

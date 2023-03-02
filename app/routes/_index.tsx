@@ -4,8 +4,8 @@ import { useState } from 'react';
 import bcrypt from 'bcryptjs';
 import { type ActionArgs, type LoaderArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
-import { isValidEmail, isValidPassword } from '~/utils/forms';
-import { getSession } from '~/sessions';
+import { extractEmails, isValidEmail, isValidPassword } from '~/utils/forms';
+import { commitSession, getSession } from '~/sessions';
 
 export async function loader({ request }: LoaderArgs) {
 	const session = await getSession(request.headers.get('Cookie'));
@@ -36,7 +36,7 @@ export async function action({ context, request }: ActionArgs) {
 		);
 	}
 	const invitees = String(formData.get('invitees') ?? '');
-	const inviteeEmails = invitees.split(',').map((email) => email.trim());
+	const inviteeEmails = extractEmails(invitees);
 	if (!invitees || inviteeEmails.length === 0) {
 		return json<ActionData>(
 			{ error: 'You must invite at least one email address' },
@@ -85,8 +85,8 @@ export async function action({ context, request }: ActionArgs) {
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		// add the Emails. If any fail, continue to the next one.
-		for (const email of invitees) {
+		// add the invitee emails. If any fail, continue to the next one.
+		for (const email of inviteeEmails) {
 			// create user and invitee record
 			try {
 				if (!isValidEmail(email)) {
@@ -121,7 +121,14 @@ export async function action({ context, request }: ActionArgs) {
 				console.log(e);
 			}
 		}
-		return redirect(`/events/${event.id}`);
+		// set the newly created user on the session
+		const session = await getSession(request.headers.get('Cookie'));
+		session.set('userID', organizer.id);
+		return redirect(`/events/${event.id}`, {
+			headers: {
+				'Set-Cookie': await commitSession(session),
+			},
+		});
 	} catch (e) {
 		console.log(e);
 		return json<ActionData>({ error: 'Error creating event' }, { status: 500 });
@@ -140,19 +147,13 @@ export default function Home() {
 			<p>Planning something with friends? Let AI handle the coordination.</p>
 			<h2>How does it work?</h2>
 			<ul>
-				<li>
-					We'll email the invitees and find a date that most people can do
-				</li>
+				<li>We'll email each person and find a date that most people can do</li>
 				<li>
 					Then we'll finalize the details and send everyone calendar invites
 				</li>
 			</ul>
 
-			<Form
-				method="post"
-				action="/"
-				className="flex flex-col items-start space-y-6"
-			>
+			<Form method="post" className="flex flex-col items-start space-y-6">
 				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="eventName">What are you planning?</label>
 					<input

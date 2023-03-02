@@ -2,7 +2,7 @@ import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/cloudflare';
 import { type ActionArgs, type LoaderArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
-import { isValidEmail } from '~/utils/forms';
+import { extractEmails, isValidEmail } from '~/utils/forms';
 import { getSession } from '~/sessions';
 
 export async function loader({ request }: LoaderArgs) {
@@ -39,7 +39,7 @@ export async function action({ context, request }: ActionArgs) {
 		);
 	}
 	const invitees = String(formData.get('invitees') ?? '');
-	const inviteeEmails = invitees.split(',').map((email) => email.trim());
+	const inviteeEmails = extractEmails(invitees);
 	if (!invitees || inviteeEmails.length === 0) {
 		return json<ActionData>(
 			{ error: 'You must invite at least one email address' },
@@ -71,8 +71,8 @@ export async function action({ context, request }: ActionArgs) {
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
-		// add the Emails. If any fail, continue to the next one.
-		for (const email of invitees) {
+		// add the invitee emails. If any fail, continue to the next one.
+		for (const email of inviteeEmails) {
 			// create user and invitee record
 			try {
 				if (!isValidEmail(email)) {
@@ -120,11 +120,7 @@ export default function EventsCreate() {
 
 	return (
 		<div>
-			<Form
-				method="post"
-				action="/events/create"
-				className="flex flex-col items-start space-y-6"
-			>
+			<Form method="post" className="flex flex-col items-start space-y-6">
 				<div className="flex w-full max-w-lg flex-col space-y-2">
 					<label htmlFor="eventName">What are you planning?</label>
 					<input

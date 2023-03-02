@@ -11,3 +11,8 @@ export function isValidPassword(password?: string): boolean {
 	}
 	return true;
 }
+
+export function extractEmails(text: string): string[] {
+	const emails = text.match(/[\w.]+@[\w.]+/g);
+	return emails || [];
+}

@@ -6,29 +6,46 @@ import { type LoaderArgs } from '~/types/remix';
 
 export async function loader({ request, params, context }: LoaderArgs) {
 	const session = await getSession(request.headers.get('Cookie'));
-	if (!session.get('userID')) {
+	const userID = session.get('userID');
+	if (!userID) {
 		return redirect('/login');
 	}
+	const eventID = Number(params.id);
 	const db = createDBClient(context.DB);
 	const event = await db
 		.selectFrom('events')
 		.selectAll()
-		.where('id', '=', Number(params.id))
+		.where('id', '=', eventID)
 		.executeTakeFirst();
 	const invitees = await db
 		.selectFrom('invitees')
-		.leftJoin('users', 'invitees.user_id', 'users.id')
+		.innerJoin('users', 'invitees.user_id', 'users.id')
 		.selectAll()
-		.where('event_id', '=', Number(params.id))
+		.where('event_id', '=', eventID)
 		.execute();
-	return json({ event, invitees });
+	if (
+		event?.organizer_id !== userID &&
+		!invitees.some((i) => i.user_id === userID)
+	) {
+		return json({
+			error: 'You are not authorized to view this event',
+			event: null,
+			invitees: null,
+		});
+	}
+	return json({ event, invitees, error: null });
 }
 
 export default function EventsByID() {
-	const { event, invitees } = useLoaderData<typeof loader>();
+	const { event, invitees, error } = useLoaderData<typeof loader>();
 
-	if (!event || !invitees)
+	if (error) {
+		return <div className="text-red-500">{error}</div>;
+	}
+
+	if (!event || !invitees) {
 		return <div className="text-red-500">Event not found</div>;
+	}
 
 	const allInviteesResponded =
 		invitees.length > 0 && invitees.every((invitee) => invitee.response);
