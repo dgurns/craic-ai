@@ -32,7 +32,6 @@ export async function action({ context, request }: ActionArgs) {
 			{ status: 400 }
 		);
 	}
-	let eventID: number | undefined;
 	try {
 		const db = createDBClient(context.DB);
 		// create user for organizer
@@ -69,7 +68,6 @@ export async function action({ context, request }: ActionArgs) {
 				{ status: 500 }
 			);
 		}
-		eventID = event.id;
 		// add the invitees. If any fail, continue to the next one.
 		for (const email of invitees) {
 			// create user and invitee record
@@ -98,11 +96,11 @@ export async function action({ context, request }: ActionArgs) {
 				//
 			}
 		}
+		return redirect(`/events/${event.id}`);
 	} catch (e) {
 		console.log(e);
 		return json<ActionData>({ error: 'Error creating event' }, { status: 500 });
 	}
-	return redirect(`/events/${eventID}`);
 }
 
 export default function EventsCreate() {
