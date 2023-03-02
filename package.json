@@ -2,7 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "gen-db-types": "npx kysely-codegen --dialect=sqlite --url=./.wrangler/state/d1/DB.sqlite3 --out-file=./app/types/db.d.ts",
+    "gen-db-types": "npx kysely-codegen --dialect=sqlite --url=./.wrangler/state/d1/DB.sqlite3 --out-file=./app/types/db-generated.d.ts",
     "build": "remix build",
     "dev:remix": "remix watch",
     "dev:wrangler": "cross-env NODE_ENV=development npm run wrangler",
@@ -22,8 +22,7 @@
     "kysely-d1": "^0.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "xstate": "^4.37.0",
-    "zod": "^3.20.6"
+    "xstate": "^4.37.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^3.18.0",

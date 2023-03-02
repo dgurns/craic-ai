@@ -1,34 +1,50 @@
 import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/cloudflare';
 import { useState } from 'react';
-import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { type ActionArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
-import { isValidEmail } from '~/utils/email';
+import { isValidEmail, isValidPassword } from '~/utils/forms';
 
 type ActionData = {
 	error?: string;
 };
 
 export async function action({ context, request }: ActionArgs) {
-	const formData = Object.fromEntries(await request.formData());
-	const formSchema = z.object({
-		eventName: z.string(),
-		roughDate: z.string(),
-		invitees: z.string(),
-		email: z.string().regex(/.+@.+\..+/),
-		password: z.string().min(8),
-	});
-	const parsed = formSchema.safeParse(formData);
-	if (!parsed.success) {
-		const error = parsed.error.issues.map((i) => i.message).join(', ');
-		return json<ActionData>({ error }, { status: 400 });
-	}
-	const invitees = parsed.data.invitees.split(',').map((email) => email.trim());
-	if (invitees.length === 0) {
+	const formData = await request.formData();
+	const eventName = String(formData.get('eventName') ?? '');
+	if (!eventName) {
 		return json<ActionData>(
-			{ error: 'You must invite at least one person' },
+			{ error: 'You must provide an event name' },
+			{ status: 400 }
+		);
+	}
+	const roughDate = String(formData.get('roughDate') ?? '');
+	if (!roughDate) {
+		return json<ActionData>(
+			{ error: 'You must provide a rough date' },
+			{ status: 400 }
+		);
+	}
+	const invitees = String(formData.get('invitees') ?? '');
+	const inviteeEmails = invitees.split(',').map((email) => email.trim());
+	if (!invitees || inviteeEmails.length === 0) {
+		return json<ActionData>(
+			{ error: 'You must invite at least one email address' },
+			{ status: 400 }
+		);
+	}
+	const email = String(formData.get('email') ?? '');
+	if (!isValidEmail(email)) {
+		return json<ActionData>(
+			{ error: 'Your email address is invalid' },
+			{ status: 400 }
+		);
+	}
+	const password = String(formData.get('password') ?? '');
+	if (!isValidPassword(password)) {
+		return json<ActionData>(
+			{ error: 'Password must be at least 8 characters' },
 			{ status: 400 }
 		);
 	}
@@ -38,37 +54,22 @@ export async function action({ context, request }: ActionArgs) {
 		const organizer = await db
 			.insertInto('users')
 			.values({
-				email: parsed.data.email,
-				hashed_password: bcrypt.hashSync(parsed.data.password),
+				email,
+				hashed_password: bcrypt.hashSync(password),
 			})
 			.returning('id')
 			.executeTakeFirstOrThrow();
-		if (!organizer.id) {
-			return json<ActionData>(
-				{
-					error:
-						'Unable to create user; do you already have an account for this email? If so, please login.',
-				},
-				{ status: 500 }
-			);
-		}
 		// create event
 		const event = await db
 			.insertInto('events')
 			.values({
 				organizer_id: organizer.id,
-				name: parsed.data.eventName,
-				proposed_date: parsed.data.roughDate,
+				name: eventName,
+				proposed_date: roughDate,
 			})
-			.returning('id')
-			.executeTakeFirst();
-		if (!event?.id) {
-			return json<ActionData>(
-				{ error: 'Unable to create event' },
-				{ status: 500 }
-			);
-		}
-		// add the invitees. If any fail, continue to the next one.
+			.returningAll()
+			.executeTakeFirstOrThrow();
+		// add the Emails. If any fail, continue to the next one.
 		for (const email of invitees) {
 			// create user and invitee record
 			try {
@@ -81,17 +82,14 @@ export async function action({ context, request }: ActionArgs) {
 						email,
 					})
 					.returning('id')
-					.executeTakeFirst();
-				if (!inviteeUser?.id) {
-					throw new Error('Unable to create user for invitee');
-				}
+					.executeTakeFirstOrThrow();
 				await db
 					.insertInto('invitees')
 					.values({
 						event_id: event.id,
 						user_id: inviteeUser.id,
 					})
-					.execute();
+					.executeTakeFirstOrThrow();
 			} catch {
 				//
 			}
