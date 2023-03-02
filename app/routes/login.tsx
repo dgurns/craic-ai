@@ -1,14 +1,24 @@
 import { Form, useActionData } from '@remix-run/react';
 import { json, redirect } from '@remix-run/cloudflare';
 import bcrypt from 'bcryptjs';
-import { type ActionArgs } from '~/types/remix';
+import { type LoaderArgs, type ActionArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
+import { getSession, commitSession } from '~/sessions';
+
+export async function loader({ request }: LoaderArgs) {
+	const session = await getSession(request.headers.get('Cookie'));
+	if (session.get('userID')) {
+		return redirect('/events');
+	}
+	return json({});
+}
 
 type ActionData = {
 	error?: string;
 };
 
 export async function action({ request, context }: ActionArgs) {
+	const session = await getSession(request.headers.get('Cookie'));
 	const formData = await request.formData();
 	const email = String(formData.get('email') ?? '');
 	const password = String(formData.get('password') ?? '');
@@ -40,10 +50,15 @@ export async function action({ request, context }: ActionArgs) {
 		if (!bcrypt.compareSync(password, user.hashed_password)) {
 			return json<ActionData>({ error: 'Incorrect password' }, { status: 400 });
 		}
+		session.set('userID', user.id);
+		return redirect('/events', {
+			headers: {
+				'Set-Cookie': await commitSession(session),
+			},
+		});
 	} catch (error) {
 		return json<ActionData>({ error: 'Error logging in' }, { status: 500 });
 	}
-	return redirect('/events');
 }
 
 export default function Login() {

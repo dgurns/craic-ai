@@ -1,16 +1,27 @@
 import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/cloudflare';
-import { useState } from 'react';
-import bcrypt from 'bcryptjs';
-import { type ActionArgs } from '~/types/remix';
+import { type ActionArgs, type LoaderArgs } from '~/types/remix';
 import { createDBClient } from '~/db.server';
 import { isValidEmail, isValidPassword } from '~/utils/forms';
+import { getSession } from '~/sessions';
+
+export async function loader({ request }: LoaderArgs) {
+	const session = await getSession(request.headers.get('Cookie'));
+	if (!session.get('userID')) {
+		return redirect('/login');
+	}
+}
 
 type ActionData = {
 	error?: string;
 };
 
 export async function action({ context, request }: ActionArgs) {
+	const session = await getSession(request.headers.get('Cookie'));
+	const userID = session.get('userID');
+	if (!userID) {
+		return redirect('/login');
+	}
 	const formData = await request.formData();
 	const eventName = String(formData.get('eventName') ?? '');
 	if (!eventName) {
@@ -50,14 +61,11 @@ export async function action({ context, request }: ActionArgs) {
 	}
 	try {
 		const db = createDBClient(context.DB);
-		// create user for organizer
+		// get organizer user
 		const organizer = await db
-			.insertInto('users')
-			.values({
-				email,
-				hashed_password: bcrypt.hashSync(password),
-			})
-			.returning('id')
+			.selectFrom('users')
+			.selectAll()
+			.where('id', '=', userID)
 			.executeTakeFirstOrThrow();
 		// create event
 		const event = await db
@@ -105,8 +113,6 @@ export default function EventsCreate() {
 	const { state } = useNavigation();
 	const data = useActionData<ActionData>();
 
-	const [showPasswordField, setShowPasswordField] = useState(false);
-
 	return (
 		<div>
 			<h1>Craic AI</h1>
@@ -123,7 +129,7 @@ export default function EventsCreate() {
 
 			<Form
 				method="post"
-				action="/events/create"
+				action="/"
 				className="flex flex-col space-y-6 items-start"
 			>
 				<div className="flex flex-col space-y-2 w-full max-w-lg">
@@ -157,27 +163,6 @@ export default function EventsCreate() {
 						placeholder="john@gmail.com, sandy@aol.com..."
 					/>
 				</div>
-
-				<div className="flex flex-col space-y-2 w-full max-w-lg">
-					<label htmlFor="email">Your email</label>
-					<input
-						type="text"
-						id="email"
-						name="email"
-						required
-						placeholder="you@you.com"
-						onChange={() => setShowPasswordField(true)}
-					/>
-				</div>
-
-				{showPasswordField && (
-					<div className="flex flex-col space-y-2 w-full max-w-lg">
-						<label htmlFor="password">
-							Choose a password (at least 8 characters)
-						</label>
-						<input type="password" id="password" name="password" required />
-					</div>
-				)}
 
 				{state === 'idle' ? (
 					<button type="submit">Plan it!</button>
