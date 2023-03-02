@@ -66,20 +66,46 @@ export async function action({ context, request }: ActionArgs) {
 	}
 	try {
 		const db = createDBClient(context.DB);
-		// create user for organizer
-		const organizer = await db
-			.insertInto('users')
-			.values({
-				email,
-				hashed_password: bcrypt.hashSync(password),
-			})
-			.returning('id')
-			.executeTakeFirstOrThrow();
+		let userID: number | undefined;
+		// check if a user already exists for this email
+		const existingUser = await db
+			.selectFrom('users')
+			.selectAll()
+			.where('email', '=', email)
+			.executeTakeFirst();
+		if (existingUser) {
+			// if password matches, use this userID. If not, return an error.
+			if (
+				existingUser.hashed_password &&
+				bcrypt.compareSync(password, existingUser.hashed_password)
+			) {
+				userID = existingUser.id;
+			} else {
+				return json<ActionData>(
+					{
+						error:
+							'There is already a user with this email address. Please log in.',
+					},
+					{ status: 400 }
+				);
+			}
+		} else {
+			// if there is no existing user for this email, create a new user
+			const newUser = await db
+				.insertInto('users')
+				.values({
+					email,
+					hashed_password: bcrypt.hashSync(password),
+				})
+				.returning('id')
+				.executeTakeFirstOrThrow();
+			userID = newUser.id;
+		}
 		// create event
 		const event = await db
 			.insertInto('events')
 			.values({
-				organizer_id: organizer.id,
+				organizer_id: userID,
 				name: eventName,
 				proposed_date: roughDate,
 			})
@@ -123,7 +149,7 @@ export async function action({ context, request }: ActionArgs) {
 		}
 		// set the newly created user on the session
 		const session = await getSession(request.headers.get('Cookie'));
-		session.set('userID', organizer.id);
+		session.set('userID', userID);
 		return redirect(`/events/${event.id}`, {
 			headers: {
 				'Set-Cookie': await commitSession(session),
@@ -146,8 +172,8 @@ export default function Home() {
 			<h1>Craic AI</h1>
 			<p>Planning something with friends? Let AI handle the coordination.</p>
 			<h2>How does it work?</h2>
-			<ul>
-				<li>We'll email attendees and find a date that most people can do</li>
+			<ul className="list-inside list-disc">
+				<li>We'll email folks and find a date that most people can do</li>
 				<li>
 					Then we'll finalize the details and send everyone calendar invites
 				</li>
