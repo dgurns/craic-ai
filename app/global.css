@@ -12,7 +12,7 @@ h1 {
 }
 
 h2 {
-	@apply text-xl font-bold;
+	@apply text-lg font-bold;
 }
 
 a {

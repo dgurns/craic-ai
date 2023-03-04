@@ -5,7 +5,13 @@ import type { Generated } from 'kysely';
 export interface Event {
 	id: Generated<number>;
 	organizer_id: number;
-	state: string;
+	state: Generated<
+		| 'eventCreated'
+		| 'checkingAvailability'
+		| 'finalizingDate'
+		| 'sendingFinalizedDate'
+		| 'finalized'
+	>;
 	name: string;
 	proposed_date: string;
 	finalized_date: string | null;

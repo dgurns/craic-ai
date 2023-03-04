@@ -14,9 +14,16 @@ export async function loader({ request, params, context }: LoaderArgs) {
 	const eventID = Number(params.id);
 	const db = createDBClient(context.DB);
 	const event = await db
-		.selectFrom('events')
-		.selectAll()
-		.where('id', '=', eventID)
+		.selectFrom('events as e')
+		.leftJoin('users as u', 'e.organizer_id', 'u.id')
+		.select([
+			'e.name',
+			'e.proposed_date',
+			'e.state',
+			'e.organizer_id',
+			'u.email',
+		])
+		.where('e.id', '=', eventID)
 		.executeTakeFirst();
 	const invitees = await db
 		.selectFrom('invitees')
@@ -41,17 +48,11 @@ export default function EventsByID() {
 	const { event, invitees, error } = useLoaderData<typeof loader>();
 
 	const step2Status = useMemo(() => {
-		switch (event?.state) {
-			case 'checkingAvailability':
-				return 'IN PROGRESS';
-			case 'finalizingDate':
-			case 'sendingFinalizedDate':
-			case 'finalized':
-				return 'DONE';
-			default:
-				return 'NOT YET';
+		if (invitees?.every((i) => i.availability_response)) {
+			return 'DONE';
 		}
-	}, [event]);
+		return 'IN PROGRESS';
+	}, [invitees]);
 
 	const step3Status = useMemo(() => {
 		switch (event?.state) {
@@ -88,7 +89,11 @@ export default function EventsByID() {
 		<div className="flex flex-col">
 			<Link to="/events">All Events</Link>
 			<h1>Event Name: {event.name}</h1>
-			<h2>Proposed Date: {event.proposed_date}</h2>
+			<h2>
+				Organizer: {event.email}
+				<br />
+				Proposed Date: {event.proposed_date}
+			</h2>
 			<ul>
 				<li>Step 1: Event name and rough date range - DONE</li>
 				<li>
@@ -97,14 +102,10 @@ export default function EventsByID() {
 						{invitees.map((invitee) => (
 							<li key={invitee.id}>
 								{invitee.email}
-								{step2Status !== 'NOT YET' && (
-									<>
-										{' - '}
-										{invitee.availability_response
-											? `Response: "${invitee.availability_response}"`
-											: 'No response yet'}
-									</>
-								)}
+								{' - '}
+								{invitee.availability_response
+									? `Response: "${invitee.availability_response}"`
+									: 'No response yet'}
 							</li>
 						))}
 					</ul>
