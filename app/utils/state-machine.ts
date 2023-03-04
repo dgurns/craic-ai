@@ -3,11 +3,11 @@ import { createMachine } from 'xstate';
 export const stateMachine = createMachine(
 	{
 		id: 'state-machine',
-		initial: 'readyToPlan',
+		initial: 'eventCreated',
 		states: {
-			readyToPlan: {
+			eventCreated: {
 				on: {
-					INVITEES_CONTACTED_FOR_AVAILABILITY: 'checkingAvailability',
+					CHECK_AVAILABILITY: 'checkingAvailability',
 				},
 			},
 			checkingAvailability: {
@@ -15,13 +15,13 @@ export const stateMachine = createMachine(
 					GOT_AVAILABILITY_RESPONSE: [
 						{
 							cond: 'gotAvailabilityFromEveryone',
-							target: 'finalizingTime',
+							target: 'finalizingDate',
 						},
 					],
 				},
 			},
-			finalizingTime: { on: { TIME_FINALIZED: 'sendingInvites' } },
-			sendingInvites: { on: { INVITES_SENT: 'finalized' } },
+			finalizingDate: { on: { DATE_FINALIZED: 'sendingFinalizedDate' } },
+			sendingFinalizedDate: { on: { FINALIZED_DATE_SENT: 'finalized' } },
 			finalized: { type: 'final' },
 		},
 	},

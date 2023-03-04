@@ -16,8 +16,8 @@ export interface Invitees {
 	id: Generated<number>;
 	event_id: number;
 	user_id: number;
-	invite_sent: Generated<boolean>;
-	response: string | null;
+	availability_sent: Generated<boolean>;
+	availability_response: string | null;
 	finalized_date_sent: Generated<boolean>;
 	created_at: Generated<string>;
 	updated_at: Generated<string>;

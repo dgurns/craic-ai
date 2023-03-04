@@ -48,7 +48,8 @@ export default function EventsByID() {
 	}
 
 	const allInviteesResponded =
-		invitees.length > 0 && invitees.every((invitee) => invitee.response);
+		invitees.length > 0 &&
+		invitees.every((invitee) => invitee.availability_response);
 	const allInviteesSentConfirmation =
 		invitees.length > 0 &&
 		invitees.every((invitee) => invitee.finalized_date_sent);
@@ -68,8 +69,8 @@ export default function EventsByID() {
 							<li key={invitee.id}>
 								{invitee.email}
 								{' - '}
-								{invitee.response
-									? `Response: "${invitee.response}"`
+								{invitee.availability_response
+									? `Response: "${invitee.availability_response}"`
 									: 'No response yet'}
 							</li>
 						))}
