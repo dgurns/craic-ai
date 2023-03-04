@@ -9,6 +9,7 @@ CREATE TABLE users (
 CREATE TABLE events (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	organizer_id INTEGER NOT NULL,
+	state TEXT DEFAULT 'eventCreated' NOT NULL,
 	name TEXT NOT NULL,
 	proposed_date TEXT NOT NULL,
 	finalized_date TEXT,

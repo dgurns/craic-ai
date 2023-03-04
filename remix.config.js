@@ -11,6 +11,7 @@ module.exports = {
   serverModuleFormat: "esm",
   serverPlatform: "neutral",
 	future: {
+		unstable_dev: true,
     unstable_tailwind: true,
 		v2_routeConvention: true,
   },

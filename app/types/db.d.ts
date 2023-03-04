@@ -2,9 +2,10 @@ import type { Generated } from 'kysely';
 
 // Keeping track of this manually for now to ensure that the types are accurate
 
-export interface Events {
+export interface Event {
 	id: Generated<number>;
 	organizer_id: number;
+	state: string;
 	name: string;
 	proposed_date: string;
 	finalized_date: string | null;
@@ -12,7 +13,7 @@ export interface Events {
 	updated_at: Generated<string>;
 }
 
-export interface Invitees {
+export interface Invitee {
 	id: Generated<number>;
 	event_id: number;
 	user_id: number;
@@ -23,7 +24,7 @@ export interface Invitees {
 	updated_at: Generated<string>;
 }
 
-export interface Users {
+export interface User {
 	id: Generated<number>;
 	email: string;
 	hashed_password: string | null;
@@ -32,7 +33,7 @@ export interface Users {
 }
 
 export interface DB {
-	events: Events;
-	invitees: Invitees;
-	users: Users;
+	events: Event;
+	invitees: Invitee;
+	users: User;
 }

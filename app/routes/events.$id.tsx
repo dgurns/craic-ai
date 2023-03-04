@@ -1,5 +1,6 @@
 import { json, redirect } from '@remix-run/cloudflare';
 import { Link, useLoaderData } from '@remix-run/react';
+import { useMemo } from 'react';
 import { createDBClient } from '~/db.server';
 import { getSession } from '~/sessions';
 import { type LoaderArgs } from '~/types/remix';
@@ -39,6 +40,42 @@ export async function loader({ request, params, context }: LoaderArgs) {
 export default function EventsByID() {
 	const { event, invitees, error } = useLoaderData<typeof loader>();
 
+	const step2Status = useMemo(() => {
+		switch (event?.state) {
+			case 'checkingAvailability':
+				return 'IN PROGRESS';
+			case 'finalizingDate':
+			case 'sendingFinalizedDate':
+			case 'finalized':
+				return 'DONE';
+			default:
+				return 'NOT YET';
+		}
+	}, [event]);
+
+	const step3Status = useMemo(() => {
+		switch (event?.state) {
+			case 'finalizingDate':
+				return 'IN PROGRESS';
+			case 'sendingFinalizedDate':
+			case 'finalized':
+				return 'DONE';
+			default:
+				return 'NOT YET';
+		}
+	}, [event]);
+
+	const step4Status = useMemo(() => {
+		switch (event?.state) {
+			case 'sendingFinalizedDate':
+				return 'IN PROGRESS';
+			case 'finalized':
+				return 'DONE';
+			default:
+				return 'NOT YET';
+		}
+	}, [event]);
+
 	if (error) {
 		return <div className="text-red-500">{error}</div>;
 	}
@@ -47,43 +84,35 @@ export default function EventsByID() {
 		return <div className="text-red-500">Event not found</div>;
 	}
 
-	const allInviteesResponded =
-		invitees.length > 0 &&
-		invitees.every((invitee) => invitee.availability_response);
-	const allInviteesSentConfirmation =
-		invitees.length > 0 &&
-		invitees.every((invitee) => invitee.finalized_date_sent);
-
 	return (
 		<div className="flex flex-col">
 			<Link to="/events">All Events</Link>
 			<h1>Event Name: {event.name}</h1>
 			<h2>Proposed Date: {event.proposed_date}</h2>
 			<ul>
-				<li>Step 1: Event name and rough date range - CONFIRMED</li>
+				<li>Step 1: Event name and rough date range - DONE</li>
 				<li>
-					Step 2: Email invitees about preferred dates -{' '}
-					{!allInviteesResponded ? 'IN PROGRESS' : 'CONFIRMED'}
+					Step 2: Email invitees about preferred dates - {step2Status}
 					<ul className="pl-4">
 						{invitees.map((invitee) => (
 							<li key={invitee.id}>
 								{invitee.email}
-								{' - '}
-								{invitee.availability_response
-									? `Response: "${invitee.availability_response}"`
-									: 'No response yet'}
+								{step2Status !== 'NOT YET' && (
+									<>
+										{' - '}
+										{invitee.availability_response
+											? `Response: "${invitee.availability_response}"`
+											: 'No response yet'}
+									</>
+								)}
 							</li>
 						))}
 					</ul>
 				</li>
 				<li>
-					Step 3: Finalize date and time that most people can do -{' '}
-					{event.finalized_date ? 'CONFIRMED' : 'NOT YET'}
+					Step 3: Finalize date and time that most people can do - {step3Status}
 				</li>
-				<li>
-					Step 4: Email calendar invites -{' '}
-					{!allInviteesSentConfirmation ? 'NOT YET' : 'CONFIRMED'}
-				</li>
+				<li>Step 4: Email calendar invites - {step4Status}</li>
 			</ul>
 		</div>
 	);
