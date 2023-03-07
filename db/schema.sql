@@ -13,6 +13,7 @@ CREATE TABLE events (
 	name TEXT NOT NULL,
 	proposed_date TEXT NOT NULL,
 	finalized_email_text TEXT,
+	finalized_ics_file TEXT,
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (organizer_id) REFERENCES users(id)

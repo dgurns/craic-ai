@@ -15,6 +15,7 @@ export interface Event {
 	name: string;
 	proposed_date: string;
 	finalized_email_text: string | null;
+	finalized_ics_file: string | null;
 	created_at: Generated<string>;
 	updated_at: Generated<string>;
 }

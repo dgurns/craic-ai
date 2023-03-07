@@ -89,7 +89,7 @@ async function finalizeEvent({
 			reference point, today is ${new Date().toDateString()}.
 		`;
 		// call OpenAI API to finalize the date
-		const res = await fetch('https://api.openai.com/v1/chat/completions', {
+		const emailRes = await fetch('https://api.openai.com/v1/chat/completions', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -109,18 +109,60 @@ async function finalizeEvent({
 				],
 			}),
 		});
-		const resJSON = await res.json<OpenAIAPIResponse>();
-		if (!Array.isArray(resJSON.choices) || resJSON.choices.length < 1) {
+		const emailResJSON = await emailRes.json<OpenAIAPIResponse>();
+		if (
+			!Array.isArray(emailResJSON.choices) ||
+			emailResJSON.choices.length < 1
+		) {
 			throw new Error();
 		}
-		const finalizedEmailText = resJSON.choices[0].message.content;
+		const finalizedEmailText = emailResJSON.choices[0].message.content;
+		// create ICS file
+		const icsRes = await fetch('https://api.openai.com/v1/chat/completions', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${openAIAPIKey}`,
+			},
+			body: JSON.stringify({
+				model: 'gpt-3.5-turbo',
+				messages: [
+					{
+						role: 'system',
+						content: systemMessage,
+					},
+					{
+						role: 'user',
+						content: userMessage,
+					},
+					{
+						role: 'system',
+						content: finalizedEmailText,
+					},
+					{
+						role: 'user',
+						content: `
+							Create the contents of a .ics file for the event date/time. 
+							Don't include commentary, just a string which is the contents of the file.`,
+					},
+				],
+			}),
+		});
+		const icsResJSON = await icsRes.json<OpenAIAPIResponse>();
+		if (!Array.isArray(icsResJSON.choices) || icsResJSON.choices.length < 1) {
+			throw new Error();
+		}
+		const icsFile = icsResJSON.choices[0].message.content;
 		// update the event record
 		await db
 			.updateTable('events')
-			.set({ finalized_email_text: finalizedEmailText, state: 'finalized' })
+			.set({
+				state: 'finalized',
+				finalized_email_text: finalizedEmailText,
+				finalized_ics_file: icsFile,
+			})
 			.where('id', '=', event.id)
 			.execute();
-		// TODO: send emails to attendees
 		console.log('Event finalized');
 	} catch (e) {
 		console.log('Error finalizing event', e);
