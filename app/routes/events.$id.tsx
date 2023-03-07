@@ -20,6 +20,7 @@ export async function loader({ request, params, context }: LoaderArgs) {
 			'e.name',
 			'e.proposed_date',
 			'e.state',
+			'e.finalized_email_text',
 			'e.organizer_id',
 			'u.email',
 		])
@@ -92,7 +93,7 @@ export default function EventsByID() {
 			<h2>
 				Organizer: {event.email}
 				<br />
-				Proposed Date: {event.proposed_date}
+				Proposed date: {event.proposed_date}
 			</h2>
 			<ul>
 				<li>Step 1: Event name and rough date range - DONE</li>
@@ -110,8 +111,14 @@ export default function EventsByID() {
 						))}
 					</ul>
 				</li>
-				<li>
-					Step 3: Finalize date and time that most people can do - {step3Status}
+				<li className="flex flex-col">
+					<div>
+						Step 3: Finalize date and time that most people can do -{' '}
+						{step3Status}
+					</div>
+					{event.finalized_email_text && (
+						<div className="pl-4">"{event.finalized_email_text}"</div>
+					)}
 				</li>
 				<li>Step 4: Email calendar invites - {step4Status}</li>
 			</ul>

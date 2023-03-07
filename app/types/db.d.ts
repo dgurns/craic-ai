@@ -14,7 +14,7 @@ export interface Event {
 	>;
 	name: string;
 	proposed_date: string;
-	finalized_date: string | null;
+	finalized_email_text: string | null;
 	created_at: Generated<string>;
 	updated_at: Generated<string>;
 }

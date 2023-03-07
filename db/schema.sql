@@ -12,7 +12,7 @@ CREATE TABLE events (
 	state TEXT DEFAULT 'eventCreated' NOT NULL,
 	name TEXT NOT NULL,
 	proposed_date TEXT NOT NULL,
-	finalized_date TEXT,
+	finalized_email_text TEXT,
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (organizer_id) REFERENCES users(id)
