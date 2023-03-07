@@ -42,6 +42,7 @@ export async function action({ request, context }: ActionArgs) {
 			);
 		}
 		if (!user.hashed_password) {
+			// TODO: Send an email to the user so they can set a password
 			return json<ActionData>(
 				{ error: 'User does not have a password' },
 				{ status: 400 }

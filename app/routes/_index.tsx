@@ -81,6 +81,7 @@ export async function action({ context, request }: ActionArgs) {
 			) {
 				userID = existingUser.id;
 			} else {
+				// TODO: send an email to the user with a link to set their password
 				return json<ActionData>(
 					{
 						error:
